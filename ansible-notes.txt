@@ -1,0 +1,193 @@
+Prerequisites
+=============
+To install ppa, we need to install software-properties-common which gives access to apt-add-repository
+
+sudo apt update
+sudo apt install software-properties-common
+
+Note: Older version of Ubuntu had python-software-properties package.
+
+Installing Ansible
+==================
+sudo apt-add-respository ppa:ansible/ansible
+sudo apt update						# Queries the new repository and pulls down the meta-data
+sudo apt install ansible
+
+Check Ansible
+-------------
+ansible --version
+ansible-playbook --version
+ansible-galaxy --help
+
+Inventory File
+--------------
+- With Ansible tool, one has to define the potential targets in advance in an Inventory file.
+- Inventory file can be Static or Dynamic (Dynamic file calls other APIs and services to populate the host information)
+- Inventory lists the hosts but can also list additional information such as non-standard ssh port or custom hostname etc
+- It also gives the ability to group the hosts by role and commands can be executed against those groups
+- By default Ansible provides a dummy Inventory file (/etc/ansible/hosts). The ansible configuration file (/etc/ansible/ansible.cfg) defines this as the global default Inventory file.
+
+ansible --list-hosts all
+
+We can delete this default hosts file and then populate our actual hosts information; however; DevOps best practice is to populate a local inventory file from git repository.
+Note: When we type "ansible --list-hosts all", no hosts matched message would be displayed, if the Inventory file is empty.
+
+Sample Inventory File (production-inventory.inv)
+------------------------------------------------
+[loadbalancers]
+lb01
+
+
+[webservers]
+app01
+app02
+
+[database]
+db01
+
+[control]
+control ansible_connection=local		
+
+----------------------------------------------------
+
+Note: By default ansible ssh to all hosts; however; since ansible is running locally on control host, we can define it's connection as local.
+
+
+INV=~/ansible/production-inventory.inv
+ansible --list-hosts all -i $INV
+
+Note: To avoid typing -i $INV each time we run a command, we can define an ansible.cfg file in the local ansible working directory on the control host. Within this file we can define 
+the default inventory file that must be searched when ever a command is executed.
+
+ansible.cfg (local)
+-------------------
+[defaults]
+inventory = ./production-inventory.inv
+
+HOST SELECTION
+==============
+There are two default groups: all and ungrouped. all contains every host. ungrouped contains all hosts that don’t have another group aside from all. Every host will always belong to atleast 
+two groups.
+
+Below statements are identical
+ansible --list-hosts all						# calling all hosts
+ansible --list-hosts "*"						# calling all hosts
+
+ansible --list-hosts loadbalancers				# calling group
+ansible --list-hosts app01						# calling single host
+ansible --list-hosts "app0*"					# calling host with wildcard
+
+ansible --list-hosts loadbalancers:webservers	# Ansible 2.0 uses comma to seperate
+
+ansible --list-hosts webserver[0]				# select 0th index webserver - app01
+
+ansible --list-hosts \!control					# list everything expect the control group
+
+
+TASKS
+=====
+
+ansible -m ping all								# Ping module used againt all hosts; note: ping module does not have any parameters
+ansible -m command -a "hostname" all			# Command module used with hostname as the parameter. Also command is a special default module that will get executed if only parameters defined 
+ansible -a "hostname" all						# this is valid as command is a default module   (note: usually parameters are key=value types) 
+											
+Sample Output
+-------------
+control	| success | rc=0 >>						# control is the host against which the command (hostname) was executed, success is the result of execution which depends on the rc of actual command executed; rc=0 is this case
+control											# Output of the actual command executed i.e. for the command hostname output was control	
+
+app01 | success | rc=0 >>
+app01											
+											
+... etc											
+						
+						
+PLAYBOOKS
+=========
+A playbook is a file written in YAML format consisting of Plays
+Plays are target hosts and associated tasks
+
+mkdir ~/ansible/playbooks
+touch hostnames.yaml
+
+---
+	- hosts: all
+	- tasks:
+		- command: hostname
+		
+
+PLAYBOOK EXECUTION
+==================
+ansible-playbook ~/ansible/playbooks/hostname.yaml
+
+PLAY (all) *************************************************
+
+GATHERING FACTS ********************************************
+ok: [control]
+ok: [app01]
+ok: [app02]
+ok: [db01]
+... etc
+
+TASK: [command: hostname] **********************************
+changed: [control]
+changed: [app01]
+changed: [app02]
+changed: [db01]
+... etc
+		
+PLAY RECAP *************************************************
+control		:ok=2	changed=1	unreachable=0	failed=0
+app01		:ok=2	changed=1	unreachable=0	failed=0
+app02		:ok=2	changed=1	unreachable=0	failed=0
+db01		:ok=2	changed=1	unreachable=0	failed=0
+... etc
+
+
+Note: We can give the task a name so that the playbook execution output has a meaningful task
+
+---
+	- hosts: all
+	- tasks:
+		- name: get server hostsnames
+		- commdand: hostname
+
+PLAY (all) *************************************************
+
+GATHERING FACTS ********************************************
+ok: [control]
+ok: [app01]
+ok: [app02]
+ok: [db01]
+... etc
+
+TASK: [get server hostnames] **********************************
+changed: [control]
+changed: [app01]
+changed: [app02]
+changed: [db01]
+... etc
+		
+PLAY RECAP *************************************************
+control		:ok=2	changed=1	unreachable=0	failed=0
+app01		:ok=2	changed=1	unreachable=0	failed=0
+app02		:ok=2	changed=1	unreachable=0	failed=0
+db01		:ok=2	changed=1	unreachable=0	failed=0
+... etc
+
+
+
+
+
+
+
+
+
+
+
+
+		
+		
+						
+						
+						
