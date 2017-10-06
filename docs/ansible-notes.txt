@@ -46,7 +46,7 @@ app02
 db01
 
 [control]
-control ansible_connection=local		
+ansible-control ansible_connection=local		# Ansible 2.x throws a warning if group and control name are same. Hence, the ansible control host is renamed to ansible-host
 
 ----------------------------------------------------
 
