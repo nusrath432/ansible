@@ -111,9 +111,9 @@ mkdir ~/ansible/playbooks
 touch hostnames.yaml
 
 ---
-	- hosts: all
-	- tasks:
-		- command: hostname
+- hosts: all								# Note: Do NOT use tabs instead use spaces 
+  tasks:
+  - command: hostname
 		
 
 PLAYBOOK EXECUTION
@@ -176,11 +176,54 @@ db01		:ok=2	changed=1	unreachable=0	failed=0
 ... etc
 
 
+Loadbalancer Playbook (loadbalancer.yaml)
+=========================================
+
+---
+- hosts: loadbalancer
+  become: true								# instructing the playbook to use sudo to run the commands (Deprecation: In previous versions "become" was called "sudo") [Ref: Ansible Priviledge Escalation for details]
+  tasks:
+  - name: installing nginx
+    apt: name=nginx state=present update_cache=yes
+	
+Note:
+Name of module: apt 						# since Ubuntu; for RPM-based distributions use rpm, yum, dnf, zipper etc
+name = name of the package
+state = present								# check if package is installed; if not, install; 
+state = latest								# check if package is installed; if not or older version, install the latest; 
+state = absent								# Delete/Remove the package if it is installed
+state = build-deb							# build-dep ensures the package build dependencies are installed.
+update_cache = yes							# Run the equivalent of apt-get update before the operation.
 
 
+Database Playbook (database.yaml)
+=================================
+
+---
+- hosts: database
+  become: true
+  tasks:
+  - name: install mysql-server
+    apt: name=mysql-server state=present update_cache=yes
+	
+	
+Webserver Playbook (database.yaml)	
+==================================
+
+---
+- hosts: webserver
+  become: true
+  tasks:
+  - name: install Apache2 web components
+    apt: name={{item}} state=present update_cache=yes			# Instead of writing four statements, we can use {{item}} as a shorter syntax; ansible will execute it four times replacing the {{item}}
+	with_items:
+	- apache2
+	- libapache2-mod-wsgi
+	- python-pip
+	- python-virtualenv
 
 
-
+Note: {{item}} is not YAML syntax; it is ginger (a templating language library used in pythonic echo-system)
 
 
 
